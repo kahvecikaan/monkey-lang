@@ -91,6 +91,10 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixExpression(operator, left, right)
+	case operator == "==":
+		return nativeBoolToBooleanObject(left == right) // pointer check works for TRUE, FALSE and NULL but not Integers
+	case operator == "!=":
+		return nativeBoolToBooleanObject(left != right) // same pointer check here because they reference the same obj
 	default:
 		return NULL
 	}
