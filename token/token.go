@@ -12,8 +12,9 @@ const (
 	EOF     = "EOF"
 
 	// Identifiers + literals
-	IDENT = "IDENT" // add, foobar, x, y, ...
-	INT   = "INT"   // 12495
+	IDENT  = "IDENT"  // add, foobar, x, y, ...
+	INT    = "INT"    // 12495
+	STRING = "STRING" // "foobar"
 
 	// Operators
 	ASSIGN   = "="
@@ -28,7 +29,7 @@ const (
 
 	EQ     = "=="
 	NOT_EQ = "!="
-	
+
 	// Delimiters
 	COMMA     = ","
 	SEMICOLON = ";"
