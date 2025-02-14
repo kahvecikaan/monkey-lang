@@ -23,6 +23,11 @@ const (
 	HASH_OBJ         = "HASH"
 )
 
+var (
+	TRUE  = &Boolean{Value: true, hashKey: nil}
+	FALSE = &Boolean{Value: false, hashKey: nil}
+)
+
 type Object interface {
 	Type() ObjectType
 	Inspect() string
@@ -38,22 +43,42 @@ type Hashable interface {
 }
 
 type Integer struct {
-	Value int64
+	Value   int64
+	hashKey *HashKey //Private field to store the cached hash key
 }
 
 func (i *Integer) Type() ObjectType { return INTEGER_OBJ }
 func (i *Integer) Inspect() string  { return fmt.Sprintf("%d", i.Value) }
 func (i *Integer) HashKey() HashKey {
-	return HashKey{Type: i.Type(), Value: uint64(i.Value)}
+	// If we have a cached value, return it
+	if i.hashKey != nil {
+		return *i.hashKey
+	}
+
+	// Otherwise, compute the hash
+	hash := HashKey{Type: i.Type(), Value: uint64(i.Value)}
+	// Cache if for future use
+	i.hashKey = &hash
+	return hash
+}
+func NewInteger(value int64) *Integer {
+	return &Integer{Value: value, hashKey: nil}
 }
 
 type Boolean struct {
-	Value bool
+	Value   bool
+	hashKey *HashKey //Private field to store the cached hash key
 }
 
 func (b *Boolean) Type() ObjectType { return BOOLEAN_OBJ }
 func (b *Boolean) Inspect() string  { return fmt.Sprintf("%t", b.Value) }
 func (b *Boolean) HashKey() HashKey {
+	// If we have a cached value, return it
+	if b.hashKey != nil {
+		return *b.hashKey
+	}
+
+	// Otherwise, compute the hash
 	var value uint64
 
 	if b.Value {
@@ -62,7 +87,16 @@ func (b *Boolean) HashKey() HashKey {
 		value = 0
 	}
 
-	return HashKey{Type: b.Type(), Value: value}
+	hash := HashKey{Type: b.Type(), Value: value}
+	// Cache it for future use
+	b.hashKey = &hash
+	return hash
+}
+func GetBooleanObject(input bool) *Boolean {
+	if input {
+		return TRUE
+	}
+	return FALSE
 }
 
 type Null struct{}
@@ -139,16 +173,28 @@ func (f *Function) Inspect() string {
 }
 
 type String struct {
-	Value string
+	Value   string
+	hashKey *HashKey //Private field to store the cached hash key
 }
 
 func (s *String) Type() ObjectType { return STRING_OBJ }
 func (s *String) Inspect() string  { return s.Value }
 func (s *String) HashKey() HashKey {
+	// If we have a cached value, return it
+	if s.hashKey != nil {
+		return *s.hashKey
+	}
+
+	// Otherwise compute the hash key using fnv hash
 	h := fnv.New64a()
 	h.Write([]byte(s.Value))
-
-	return HashKey{Type: s.Type(), Value: h.Sum64()}
+	hash := HashKey{Type: s.Type(), Value: h.Sum64()}
+	// Cache it for future use
+	s.hashKey = &hash
+	return hash
+}
+func NewString(value string) *String {
+	return &String{Value: value, hashKey: nil}
 }
 
 type BuiltinFunction func(args ...Object) Object

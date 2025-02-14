@@ -8,8 +8,8 @@ import (
 
 var (
 	NULL  = &object.Null{}
-	TRUE  = &object.Boolean{Value: true}
-	FALSE = &object.Boolean{Value: false}
+	TRUE  = object.TRUE
+	FALSE = object.FALSE
 )
 
 func Eval(node ast.Node, env *object.Environment) object.Object {
@@ -36,9 +36,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 	// Expressions
 	case *ast.IntegerLiteral:
-		return &object.Integer{Value: node.Value}
+		return object.NewInteger(node.Value)
 	case *ast.StringLiteral:
-		return &object.String{Value: node.Value}
+		return object.NewString(node.Value)
 	case *ast.Boolean:
 		return nativeBoolToBooleanObject(node.Value)
 	case *ast.PrefixExpression:
@@ -133,11 +133,7 @@ func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) obje
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {
-	if input {
-		return TRUE
-	} else {
-		return FALSE
-	}
+	return object.GetBooleanObject(input)
 }
 
 func evalPrefixExpression(operator string, right object.Object) object.Object {
@@ -171,7 +167,7 @@ func evalMinusOperatorExpression(right object.Object) object.Object {
 	}
 
 	value := right.(*object.Integer).Value
-	return &object.Integer{Value: -value}
+	return object.NewInteger(-value)
 }
 
 func evalInfixExpression(operator string, left, right object.Object) object.Object {
@@ -198,13 +194,13 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 	rightVal := right.(*object.Integer).Value
 	switch operator {
 	case "+":
-		return &object.Integer{Value: leftVal + rightVal}
+		return object.NewInteger(leftVal + rightVal)
 	case "-":
-		return &object.Integer{Value: leftVal - rightVal}
+		return object.NewInteger(leftVal - rightVal)
 	case "*":
-		return &object.Integer{Value: leftVal * rightVal}
+		return object.NewInteger(leftVal * rightVal)
 	case "/":
-		return &object.Integer{Value: leftVal / rightVal}
+		return object.NewInteger(leftVal / rightVal)
 	case "<":
 		return nativeBoolToBooleanObject(leftVal < rightVal)
 	case ">":
@@ -227,7 +223,7 @@ func evalStringInfixExpression(operator string, left, right object.Object) objec
 
 	leftVal := left.(*object.String).Value
 	rightVal := right.(*object.String).Value
-	return &object.String{Value: leftVal + rightVal}
+	return object.NewString(leftVal + rightVal)
 }
 
 func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
