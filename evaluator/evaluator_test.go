@@ -467,12 +467,18 @@ func TestHashLiterals(t *testing.T) {
 	}
 
 	for expectedKey, expectedValue := range expected {
-		pair, ok := result.Pairs[expectedKey]
+		chain, ok := result.Pairs[expectedKey]
 		if !ok {
-			t.Errorf("no pair for given key in Pairs")
+			t.Errorf("no chain for given key in Pairs")
+			continue
 		}
 
-		testIntegerObject(t, pair.Value, expectedValue)
+		if len(chain) != 1 {
+			t.Errorf("expected chain length of 1, got = %d", len(chain))
+			continue
+		}
+
+		testIntegerObject(t, chain[0].Value, expectedValue)
 	}
 }
 
@@ -519,6 +525,90 @@ func TestHashIndexExpressions(t *testing.T) {
 		} else {
 			testNullObject(t, evaluated)
 		}
+	}
+}
+
+func TestHashAddMethod(t *testing.T) {
+	hash := object.NewHash()
+
+	// Test adding a new key-value pair
+	key1 := &object.String{Value: "name"}
+	value1 := &object.String{Value: "Monkey"}
+	err := hash.Add(key1, value1)
+	if err != nil {
+		t.Errorf("error adding to hash: %s", err)
+	}
+
+	// Test updating an existing key
+	value2 := &object.String{Value: "MonkeyLang"}
+	err = hash.Add(key1, value2)
+	if err != nil {
+		t.Errorf("error updating hash: %s", err)
+	}
+
+	// Verify the value was updated
+	chain := hash.Pairs[key1.HashKey()]
+	if len(chain) != 1 {
+		t.Errorf("wrong number of pairs in chain. got=%d, want=1", len(chain))
+	}
+
+	pair, found := chain.FindPair(key1)
+	if !found {
+		t.Errorf("key not found in hash")
+	}
+	if pair.Value.Inspect() != "MonkeyLang" {
+		t.Errorf("wrong value for key. got=%s, want=MonkeyLang", pair.Value.Inspect())
+	}
+
+	// Test adding an invalid key
+	invalidKey := &object.Function{} // Functions can't be hash keys
+	err = hash.Add(invalidKey, value1)
+	if err == nil {
+		t.Error("expected error when adding invalid key, got nil")
+	}
+}
+
+func TestHashCollisionHandling(t *testing.T) {
+	hash := object.NewHash()
+
+	str1 := &object.String{Value: "first"}
+	str2 := &object.String{Value: "second"}
+
+	err := hash.Add(str1, object.NewInteger(1))
+	if err != nil {
+		t.Fatalf("Failed to add first string: %s", err)
+	}
+
+	err = hash.Add(str2, object.NewInteger(2))
+	if err != nil {
+		t.Fatalf("Failed to add second string: %s", err)
+	}
+
+	// Verify we can retrieve values correctly
+	hk := str1.HashKey()
+	chain := hash.Pairs[hk]
+
+	// Verify we can still find the correct value even if keys hash differently
+	pair, found := chain.FindPair(str1)
+	if !found {
+		t.Error("Could not find first string")
+	} else if pair.Value.(*object.Integer).Value != 1 {
+		t.Errorf("Wrong value for first string, got %d", pair.Value.(*object.Integer).Value)
+	}
+
+	// Test updating values
+	err = hash.Add(str1, object.NewInteger(3))
+	if err != nil {
+		t.Fatalf("Failed to update first string: %s", err)
+	}
+
+	// Verify the update
+	chain = hash.Pairs[str1.HashKey()]
+	pair, found = chain.FindPair(str1)
+	if !found {
+		t.Error("Could not find updated string")
+	} else if pair.Value.(*object.Integer).Value != 3 {
+		t.Errorf("Wrong value after update, got %d", pair.Value.(*object.Integer).Value)
 	}
 }
 

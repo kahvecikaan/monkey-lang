@@ -297,16 +297,12 @@ func evalHashLiteral(
 	node *ast.HashLiteral,
 	env *object.Environment,
 ) object.Object {
-	pairs := make(map[object.HashKey]object.HashPair)
+	hash := object.NewHash()
+
 	for keyNode, valueNode := range node.Pairs {
 		key := Eval(keyNode, env)
 		if isError(key) {
 			return key
-		}
-
-		hashKey, ok := key.(object.Hashable)
-		if !ok {
-			return newError("unusable hash key: %s", key.Type())
 		}
 
 		value := Eval(valueNode, env)
@@ -314,11 +310,13 @@ func evalHashLiteral(
 			return value
 		}
 
-		hashed := hashKey.HashKey()
-		pairs[hashed] = object.HashPair{Key: key, Value: value}
+		err := hash.Add(key, value)
+		if err != nil {
+			return newError(err.Error())
+		}
 	}
 
-	return &object.Hash{Pairs: pairs}
+	return hash
 }
 
 func evalHashIndexExpression(hash, index object.Object) object.Object {
@@ -329,11 +327,15 @@ func evalHashIndexExpression(hash, index object.Object) object.Object {
 		return newError("unusable as hash key: %s", index.Type())
 	}
 
-	pair, ok := hashObject.Pairs[key.HashKey()]
+	chain, ok := hashObject.Pairs[key.HashKey()]
 	if !ok {
 		return NULL
 	}
 
+	pair, found := chain.FindPair(index)
+	if !found {
+		return NULL
+	}
 	return pair.Value
 }
 
