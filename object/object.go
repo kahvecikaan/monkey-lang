@@ -230,10 +230,43 @@ type HashPair struct {
 	Value Object
 }
 
+func compareObjects(a, b Object) bool {
+	if a.Type() != b.Type() {
+		return false
+	}
+
+	switch a := a.(type) {
+	case *String:
+		return a.Value == b.(*String).Value
+	case *Integer:
+		return a.Value == b.(*Integer).Value
+	case *Boolean:
+		return a.Value == b.(*Boolean).Value
+	default:
+		return false
+	}
+}
+
+type HashChain []HashPair
+
+func (chain HashChain) FindPair(key Object) (HashPair, bool) {
+	for _, pair := range chain {
+		if compareObjects(pair.Key, key) {
+			return pair, true
+		}
+	}
+
+	return HashPair{}, false
+}
+
 // Hash uses HashKey as the map key rather that just using the hash (uint64) directly because it prevents
 // collisions between different types.
 type Hash struct {
-	Pairs map[HashKey]HashPair
+	Pairs map[HashKey]HashChain
+}
+
+func NewHash() *Hash {
+	return &Hash{Pairs: make(map[HashKey]HashChain)}
 }
 
 func (h *Hash) Type() ObjectType { return HASH_OBJ }
@@ -241,9 +274,11 @@ func (h *Hash) Inspect() string {
 	var out bytes.Buffer
 
 	pairs := []string{}
-	for _, pair := range h.Pairs {
-		pairs = append(pairs, fmt.Sprintf("%s: %s",
-			pair.Key.Inspect(), pair.Value.Inspect()))
+	for _, chain := range h.Pairs {
+		for _, pair := range chain {
+			pairs = append(pairs, fmt.Sprintf("%s: %s",
+				pair.Key.Inspect(), pair.Value.Inspect()))
+		}
 	}
 
 	out.WriteString("{")
@@ -251,4 +286,32 @@ func (h *Hash) Inspect() string {
 	out.WriteString("}")
 
 	return out.String()
+}
+
+// Add adds or updates a key-value pair in the hash table.
+// If the key already exists, its value is updated.
+// If the key hashes to an existing value but is different, it's added to the chain.
+func (h *Hash) Add(key, value Object) error {
+	hashKey, ok := key.(Hashable)
+	if !ok {
+		return fmt.Errorf("unusable as hash key: %s", key.Type())
+	}
+
+	hashed := hashKey.HashKey()
+	chain := h.Pairs[hashed]
+	newPair := HashPair{Key: key, Value: value}
+
+	// Check if we're updating an existing key in the chain
+	for i, pair := range chain {
+		if compareObjects(pair.Key, key) {
+			chain[i] = newPair
+			h.Pairs[hashed] = chain
+			return nil
+		}
+	}
+
+	// If key wasn't found, append to chain
+	chain = append(chain, newPair)
+	h.Pairs[hashed] = chain
+	return nil
 }
