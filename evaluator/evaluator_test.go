@@ -612,6 +612,33 @@ func TestHashCollisionHandling(t *testing.T) {
 	}
 }
 
+func TestLogicalOperators(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"true && true", true},
+		{"true && false", false},
+		{"false && true", false},
+		{"false && false", false},
+		{"true || true", true},
+		{"true || false", true},
+		{"false || true", true},
+		{"false || false", false},
+		{"!false && true", true},
+		{"!(false && true)", true},
+		{"true && true && true", true},
+		{"true && false && true", false},
+		{"false || false || true", true},
+		{"true && (false || true)", true},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		testBooleanObject(t, evaluated, tt.expected)
+	}
+}
+
 func testEval(input string) object.Object {
 	l := lexer.New(input)
 	p := parser.New(l)

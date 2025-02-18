@@ -185,6 +185,18 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 	case left.Type() != right.Type():
 		return newError("type mismatch: %s %s %s",
 			left.Type(), operator, right.Type())
+	case operator == "&&":
+		// Short circuit: if left is false, don't evaluate right
+		if !isTruthy(left) {
+			return FALSE
+		}
+		return nativeBoolToBooleanObject(isTruthy(right))
+	case operator == "||":
+		// Short circuit: if left is true, don't evaluate right
+		if isTruthy(left) {
+			return TRUE
+		}
+		return nativeBoolToBooleanObject(isTruthy(right))
 	default:
 		return newError("unknown operator: %s %s %s",
 			left.Type(), operator, right.Type())
