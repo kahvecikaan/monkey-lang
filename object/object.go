@@ -118,35 +118,6 @@ type Error struct {
 func (e *Error) Type() ObjectType { return ERROR_OBJ }
 func (e *Error) Inspect() string  { return "ERROR: " + e.Message }
 
-type Environment struct {
-	store map[string]Object
-	outer *Environment
-}
-
-func NewEnvironment() *Environment {
-	s := make(map[string]Object)
-	return &Environment{store: s, outer: nil}
-}
-
-func NewClosedEnvironment(outer *Environment) *Environment {
-	env := NewEnvironment()
-	env.outer = outer
-	return env
-}
-
-func (e *Environment) Get(name string) (Object, bool) {
-	obj, ok := e.store[name]
-	if !ok && e.outer != nil {
-		obj, ok = e.outer.Get(name)
-	}
-	return obj, ok
-}
-
-func (e *Environment) Set(name string, val Object) Object {
-	e.store[name] = val
-	return val
-}
-
 type Function struct {
 	Parameters []*ast.Identifier
 	Body       *ast.BlockStatement
@@ -174,7 +145,7 @@ func (f *Function) Inspect() string {
 
 type String struct {
 	Value   string
-	hashKey *HashKey //Private field to store the cached hash key
+	hashKey *HashKey // Private field to store the cached hash key
 }
 
 func (s *String) Type() ObjectType { return STRING_OBJ }
