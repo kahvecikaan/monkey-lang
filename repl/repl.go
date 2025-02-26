@@ -10,9 +10,16 @@ import (
 	"io"
 )
 
-const PROMPT = ">>"
+const PROMPT = ">> "
 
-const MONKEY_FACE = `            __,__
+// ANSI color codes
+const (
+	ColorReset  = "\033[0m"
+	ColorOrange = "\033[38;5;208m"
+)
+
+const MONKEY_FACE = ColorOrange + `
+            __,__
    .--.  .-"     "-.  .--.
   / .. \/  .-. .-.  \/ .. \
  | |  '|  /   Y   \  |'  | |
@@ -23,7 +30,15 @@ const MONKEY_FACE = `            __,__
        \   \ '~' /   /
         '._ '-=-' _.'
            '-----'
-`
+
+ ███╗   ███╗ ██████╗ ███╗   ██╗██╗  ██╗███████╗██╗   ██╗
+ ████╗ ████║██╔═══██╗████╗  ██║██║ ██╔╝██╔════╝╚██╗ ██╔╝
+ ██╔████╔██║██║   ██║██╔██╗ ██║█████╔╝ █████╗   ╚████╔╝ 
+ ██║╚██╔╝██║██║   ██║██║╚██╗██║██╔═██╗ ██╔══╝    ╚██╔╝  
+ ██║ ╚═╝ ██║╚██████╔╝██║ ╚████║██║  ██╗███████╗   ██║   
+ ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝   ╚═╝   
+         SYNTAX ERROR - TIME TO DEBUG!
+` + ColorReset
 
 func Start(in io.Reader, out io.Writer) {
 	scanner := bufio.NewScanner(in)
